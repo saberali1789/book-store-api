@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const Joi = require("joi");
+const {validateCreateBook, validateUpdateBook} = require('../models/Book')
 
 const books = [
   {
@@ -121,30 +121,5 @@ router.delete("/:id", (req, res) => {
     : res.status(404).json({ message: "Book not Found" });
 });
 
-// Validate Create book
-function validateCreateBook(obj) {
-  const schema = Joi.object({
-  
-    title: Joi.string().trim().min(3).max(200).required(),
-    author: Joi.string().trim().min(3).max(200).required(),
-    description: Joi.string().trim().min(3).max(500).required(),
-    price: Joi.number().min(0).required(),
-    cover: Joi.string().trim().required(),
-  });
 
-  return schema.validate(obj);
-}
-// Validate Update book
-function validateUpdateBook(obj) {
-  const schema = Joi.object({
-   
-    title: Joi.string().trim().min(3).max(200),
-    author: Joi.string().trim().min(3).max(200),
-    description: Joi.string().trim().min(3).max(500),
-    price: Joi.number().min(0),
-    cover: Joi.string().trim(),
-  });
-
-  return schema.validate(obj);
-}
 module.exports = router;
