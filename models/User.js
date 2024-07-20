@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const Joi = require("joi");
+const jwt = require("jsonwebtoken");
 
 const UserSchema = new mongoose.Schema(
   {
@@ -23,7 +24,6 @@ const UserSchema = new mongoose.Schema(
       required: true,
       trim: true,
       minlength: 6,
-
     },
     isAdmin: {
       type: Boolean,
@@ -32,7 +32,13 @@ const UserSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-
+// Generate Token
+UserSchema.methods.generateToken = function () {
+  return jwt.sign(
+    { id: this._id, isAdmin: this.isAdmin },
+    process.env.JWT_SECRET_KEY
+  );
+};
 // User Model
 const User = mongoose.model("User", UserSchema);
 
@@ -42,7 +48,6 @@ function validateRegisterUser(obj) {
     email: Joi.string().trim().min(5).max(100).required().email(),
     username: Joi.string().trim().min(3).max(100).required(),
     password: Joi.string().trim().min(6).required(),
-    isAdmin: Joi.boolean(),
   });
 
   return schema.validate(obj);
@@ -64,7 +69,6 @@ function validateUpdateUser(obj) {
     email: Joi.string().trim().min(5).max(100).email(),
     username: Joi.string().trim().min(3).max(100),
     password: Joi.string().trim().min(6),
-    isAdmin: Joi.boolean(),
   });
 
   return schema.validate(obj);
@@ -74,5 +78,5 @@ module.exports = {
   User,
   validateRegisterUser,
   validateLoginUser,
-  validateUpdateUser
+  validateUpdateUser,
 };

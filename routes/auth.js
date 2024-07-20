@@ -7,6 +7,7 @@ const {
   User,
 } = require("../models/User");
 const bcrypt = require("bcryptjs");
+
 /**
  * @desc   Register New User
  * @route   /api/auth/register
@@ -26,21 +27,20 @@ router.post(
       return res.status(400).json({ message: "this user already registered" });
     }
 
-    const salt = await bcrypt.genSalt(10)
-    req.body.password = await bcrypt.hash(req.body.password, salt)
+    const salt = await bcrypt.genSalt(10);
+    req.body.password = await bcrypt.hash(req.body.password, salt);
 
     user = new User({
       email: req.body.email,
       username: req.body.username,
       password: req.body.password,
-      isAdmin: req.body.isAdmin,
     });
 
     const result = await user.save();
-    const token = null
+    const token = user.generateToken();
 
     const { password, ...other } = result._doc;
-    res.status(201).json({...other, token});
+    res.status(201).json({ ...other, token });
   })
 );
 /**
@@ -62,16 +62,19 @@ router.post(
       return res.status(400).json({ message: "invalid email or password" });
     }
 
-   const isPasswordMatch = await bcrypt.compare(req.body.password, user.password)
+    const isPasswordMatch = await bcrypt.compare(
+      req.body.password,
+      user.password
+    );
 
-   if (!isPasswordMatch) {
-    return res.status(400).json({ message: "invalid password" });
-  }
+    if (!isPasswordMatch) {
+      return res.status(400).json({ message: "invalid password" });
+    }
 
-      const token = null
+    const token = user.generateToken();
 
     const { password, ...other } = user._doc;
-    res.status(200).json({...other, token});
+    res.status(200).json({ ...other, token });
   })
 );
 

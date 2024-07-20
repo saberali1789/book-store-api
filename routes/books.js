@@ -1,38 +1,12 @@
 const express = require("express");
 const router = express.Router();
+const { verifyTokenAndAdmin } = require("../middlewares/verifyToken");
 const {
   validateCreateBook,
   validateUpdateBook,
   Book,
 } = require("../models/Book");
 const asyncHandler = require("express-async-handler");
-
-// const books = [
-//   {
-//     id: 1,
-//     title: "Black Swan",
-//     author: "Nassim Nicholas Taleb",
-//     description: "About Black Swan",
-//     price: 10,
-//     cover: "soft cover",
-//   },
-//   {
-//     id: 2,
-//     title: "Skin In The Game",
-//     author: "Nassim Nicholas Taleb",
-//     description: "About Skin In The Game",
-//     price: 12,
-//     cover: "soft cover",
-//   },
-//   // {
-//   //   id: 2,
-//   //   "title": "Skin In The Game",
-//   //   "author": "Nassim Nicholas Taleb",
-//   //   "description": "About Skin In The Game",
-//   //   "price": "12",
-//   //   "cover": "soft cover",
-//   // },
-// ];
 
 /**
  * @desc  Get all books
@@ -54,7 +28,11 @@ const asyncHandler = require("express-async-handler");
 router.get(
   "/",
   asyncHandler(async (req, res) => {
-    const books = await Book.find().populate('author',['_id', 'firstName', 'lastName' ]);
+    const books = await Book.find().populate("author", [
+      "_id",
+      "firstName",
+      "lastName",
+    ]);
     res.status(200).json(books);
   })
 );
@@ -68,7 +46,7 @@ router.get(
 router.get(
   "/:id",
   asyncHandler(async (req, res) => {
-    const book = await Book.findById(req.params.id).populate('author');
+    const book = await Book.findById(req.params.id).populate("author");
     if (book) {
       console.log(req.params);
       res.status(200).json(book);
@@ -82,10 +60,11 @@ router.get(
  * @desc  Create a new book
  * @route   /api/books
  * @method  POST
- * @access  puplic
+ * @access  private // only admin
  */
 router.post(
   "/",
+  verifyTokenAndAdmin,
   asyncHandler(async (req, res) => {
     const { error } = validateCreateBook(req.body);
     if (error) {
@@ -108,10 +87,11 @@ router.post(
  * @desc  Update a book
  * @route   /api/books/:id
  * @method  PUT
- * @access  puplic
+ * @access  private // only admin
  */
 router.put(
   "/:id",
+  verifyTokenAndAdmin,
   asyncHandler(async (req, res) => {
     const { error } = validateUpdateBook(req.body);
     error && res.status(400).json({ message: error.details[0].message });
@@ -137,10 +117,11 @@ router.put(
  * @desc  Delete a book
  * @route   /api/books/:id
  * @method  DELETE
- * @access  puplic
+ * @access  private // only admin
  */
 router.delete(
   "/:id",
+  verifyTokenAndAdmin,
   asyncHandler(async (req, res) => {
     const book = Book.findById(req.params.id);
     if (book) {
