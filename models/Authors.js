@@ -26,7 +26,7 @@ const AuthorSchema = new mongoose.Schema(
       maxlength: 50,
     },
     image: {
-      type: String,
+      type: String, 
       default: "default-avatar.png",
     },
   },
