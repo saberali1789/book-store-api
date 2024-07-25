@@ -2,6 +2,7 @@ const asyncHandler = require("express-async-handler");
 const { User } = require("../models/User");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
+const nodemailer = require("nodemailer");
 /**
  * @desc    Get Forgot Password View
  * @route   /password/forgot-password
@@ -19,7 +20,6 @@ module.exports.getForgotPasswordView = asyncHandler((req, res) => {
  * @access  puplic
  */
 module.exports.sendForgotPasswordLink = asyncHandler(async (req, res) => {
-  console.log(req.body.email);
   const user = await User.findOne({ email: req.body.email });
 
   if (!user) {
@@ -28,17 +28,46 @@ module.exports.sendForgotPasswordLink = asyncHandler(async (req, res) => {
 
   const secret = process.env.JWT_SECRET_KEY + user.password;
   const token = jwt.sign({ email: user.email, id: user.id }, secret, {
-    expiresIn: "10m",
+    expiresIn: "30m",
   });
 
-  const link = `http://localhost:8000/password/reset-password/${user.id}/${token}`;
+  const link = `http://localhost:8000/password/reset-password/${user._id}/${token}`;
 
   res.json({ message: "Click on the link", resetPasswordLink: link });
+
+  // Send email to the user
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: "your gmail",
+      pass: "your password",
+    },
+  });
+
+
+const mailOption = {
+  form: "your gmail",
+  to: user.email,
+  subject: "Reset Password",
+  html: `<div>
+              <h4>Click on the link below to reset your password</h4>
+              <p>${link}</p>
+        </div>`,
+};
+transporter.sendMail(mailOptions, function (error, success) {
+  if (error) {
+    console.log(error);
+  } else {
+    console.log("Email sent:" + success.response);
+  }
+});
+res.render('link-sender')
+
 });
 
 /**
- * @desc  Get Reset Password View
- * @route   /password/forgot-password/:userid/:token
+ * @desc    Get Reset Password View
+ * @route   /password/reset-password/:userId/:token
  * @method  Get
  * @access  puplic
  */
@@ -49,6 +78,7 @@ module.exports.getResetPasswordView = asyncHandler(async (req, res) => {
   }
 
   const secret = process.env.JWT_SECRET_KEY + user.password;
+
   try {
     jwt.verify(req.params.token, secret);
     res.render("reset-password", { email: user.email });
@@ -56,21 +86,38 @@ module.exports.getResetPasswordView = asyncHandler(async (req, res) => {
     console.log(error);
     res.json({ message: "Error" });
   }
+  // try {
+  //   const decoded = jwt.verify(req.params.token, secret);
+  //   res.render("reset-password", { email: user.email });
+  // } catch (error) {
+  //   if (error instanceof jwt.TokenExpiredError) {
+  //     return res.status(401).json({ message: "Token has expired" });
+  //   } else if (error instanceof jwt.JsonWebTokenError) {
+  //     return res.status(401).json({ message: "Invalid token" });
+  //   }
+  //   console.log("Unexpected error:", error);
+  //   res.status(400).json({ message: "Error verifying token" });
+  // }
 });
 
 /**
  * @desc    Reset Password The Password
- * @route   /password/forgot-password/:userid/:token
+ * @route   /password/forgot-password/:userId/:token
  * @method  POST
  * @access  puplic
  */
 module.exports.resetThePassword = asyncHandler(async (req, res) => {
   // TODO : Vlidation
 
+  if (!req.body.password) {
+    return res.status(400).json({ message: "Password is required" });
+  }
+
   const user = await User.findById(req.params.userId);
   if (!user) {
     return res.status(404).json({ message: " user not found third" });
   }
+
   const secret = process.env.JWT_SECRET_KEY + user.password;
   try {
     jwt.verify(req.params.token, secret);
@@ -84,6 +131,6 @@ module.exports.resetThePassword = asyncHandler(async (req, res) => {
     res.render("success-password");
   } catch (error) {
     console.log(error);
-    res.json({ message: "Error" });
+    res.json({ message: "Error here" });
   }
 });
