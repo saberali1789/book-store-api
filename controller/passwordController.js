@@ -1,5 +1,5 @@
 const asyncHandler = require("express-async-handler");
-const { User } = require("../models/User");
+const { User, validateChangePassword } = require("../models/User");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const nodemailer = require("nodemailer");
@@ -33,20 +33,20 @@ module.exports.sendForgotPasswordLink = asyncHandler(async (req, res) => {
 
   const link = `http://localhost:8000/password/reset-password/${user._id}/${token}`;
 
-  res.json({ message: "Click on the link", resetPasswordLink: link });
+ 
 
   // Send email to the user
   const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
-      user: "your gmail",
-      pass: "your password",
+      user: process.env.USER_EMAIL,
+      pass: process.env.USER_PASS,
     },
   });
 
 
 const mailOption = {
-  form: "your gmail",
+  form: process.env.USER_EMAIL,
   to: user.email,
   subject: "Reset Password",
   html: `<div>
@@ -54,14 +54,16 @@ const mailOption = {
               <p>${link}</p>
         </div>`,
 };
-transporter.sendMail(mailOptions, function (error, success) {
+transporter.sendMail(mailOption, function (error, success) {
   if (error) {
     console.log(error);
+    response.status(500).json({message: 'something went wrong'})
   } else {
     console.log("Email sent:" + success.response);
+    res.render('link-sender')
   }
 });
-res.render('link-sender')
+
 
 });
 
@@ -86,18 +88,7 @@ module.exports.getResetPasswordView = asyncHandler(async (req, res) => {
     console.log(error);
     res.json({ message: "Error" });
   }
-  // try {
-  //   const decoded = jwt.verify(req.params.token, secret);
-  //   res.render("reset-password", { email: user.email });
-  // } catch (error) {
-  //   if (error instanceof jwt.TokenExpiredError) {
-  //     return res.status(401).json({ message: "Token has expired" });
-  //   } else if (error instanceof jwt.JsonWebTokenError) {
-  //     return res.status(401).json({ message: "Invalid token" });
-  //   }
-  //   console.log("Unexpected error:", error);
-  //   res.status(400).json({ message: "Error verifying token" });
-  // }
+ 
 });
 
 /**
@@ -107,7 +98,10 @@ module.exports.getResetPasswordView = asyncHandler(async (req, res) => {
  * @access  puplic
  */
 module.exports.resetThePassword = asyncHandler(async (req, res) => {
-  // TODO : Vlidation
+const {error} = validateChangePassword(req.body)
+if(error) {
+  return res.status(400).json({message: error.details[0].message});
+}
 
   if (!req.body.password) {
     return res.status(400).json({ message: "Password is required" });
